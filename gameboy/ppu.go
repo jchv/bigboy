@@ -34,8 +34,9 @@ type PPU struct {
 	bgpd [64]uint8
 	obpd [64]uint8
 
-	bgColor, bgPalette, bgPriority uint16
-	fgColor, fgPalette, fgPriority uint16
+	bgColor, bgPalette uint16
+	fgColor, fgPalette uint16
+	fgPriority         bool
 
 	clock      int
 	lx         uint
@@ -401,6 +402,7 @@ func (ppu *PPU) pixel() {
 				ppu.fgColor = uint16(ppu.obp[0][index])
 			}
 			ppu.fgPalette = uint16(index)
+			ppu.fgPriority = s.attr&0x80 == 0
 		}
 	}
 
@@ -409,7 +411,7 @@ func (ppu *PPU) pixel() {
 		color = ppu.bgColor
 	} else if ppu.bgPalette == 0 {
 		color = ppu.fgColor
-	} else if ppu.fgPriority != 0 {
+	} else if ppu.fgPriority {
 		color = ppu.fgColor
 	} else {
 		color = ppu.bgColor

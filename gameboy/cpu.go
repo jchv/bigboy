@@ -213,7 +213,7 @@ func (gb *Machine) cpuPop() uint16 {
 
 // Interrupt sets an interrupt request.
 func (gb *Machine) Interrupt(i uint8) {
-	if gb.cpu.ie&i != 0 {
+	if gb.cpu.ie&i != 0 && gb.cpu.halt {
 		gb.cpu.halt = false
 	}
 	gb.cpu.irq |= i
@@ -277,7 +277,6 @@ func (gb *Machine) checkInterrupts() {
 
 	for flag, vector := range interruptVectorMap {
 		if gb.cpu.irq&gb.cpu.ie&flag != 0 {
-			gb.cpu.halt = false
 			gb.cpu.irq &= ^flag
 			gb.cpuInterrupt(vector)
 			return
