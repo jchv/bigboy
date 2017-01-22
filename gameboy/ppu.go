@@ -58,6 +58,7 @@ type PPU struct {
 	oamInterrupt    bool // 0xFF41 << 5
 	vblankInterrupt bool // 0xFF41 << 4
 	hblankInterrupt bool // 0xFF41 << 3
+	lyCoincidence   bool // 0xFF41 << 2
 	modeHi          bool // 0xFF41 << 1
 	modeLo          bool // 0xFF41 << 0
 
@@ -218,6 +219,9 @@ func (ppu *PPU) lcdStatusReg() uint8 {
 	if ppu.hblankInterrupt {
 		result |= 1 << 3
 	}
+	if ppu.lyCoincidence {
+		result |= 1 << 2
+	}
 	if ppu.modeHi {
 		result |= 1 << 1
 	}
@@ -232,6 +236,7 @@ func (ppu *PPU) setLCDStatusReg(v uint8) {
 	ppu.oamInterrupt = v&(1<<5) != 0
 	ppu.vblankInterrupt = v&(1<<4) != 0
 	ppu.hblankInterrupt = v&(1<<3) != 0
+	ppu.lyCoincidence = v&(1<<2) != 0
 	ppu.modeHi = v&(1<<1) != 0
 	ppu.modeLo = v&(1<<0) != 0
 }
@@ -423,6 +428,11 @@ func (gb *Machine) stepPixel() {
 	case ppu.clock < 65664:
 		switch {
 		case hclock == 0:
+			ppu.lyCoincidence = ppu.ly == ppu.lyComp
+			if ppu.lcdDisplayEnable && ppu.lyCoincidence && ppu.lycInterrupt {
+				gb.Interrupt(intLCDStat)
+			}
+
 			ppu.modeHi, ppu.modeLo = true, false
 
 			ppu.lx = 0
@@ -430,8 +440,6 @@ func (gb *Machine) stepPixel() {
 			if ppu.lcdDisplayEnable {
 				ppu.initScanline()
 			}
-
-			gb.Interrupt(intLCDStat)
 
 		case hclock >= 80 && hclock < 80+160:
 			ppu.modeHi, ppu.modeLo = true, true
@@ -444,6 +452,9 @@ func (gb *Machine) stepPixel() {
 
 		case hclock == 80+160:
 			ppu.modeHi, ppu.modeLo = false, false
+			if ppu.lcdDisplayEnable && ppu.hblankInterrupt {
+				gb.Interrupt(intLCDStat)
+			}
 			// TODO(john): DMA should be handled here
 
 		case hclock == 455:
@@ -456,7 +467,11 @@ func (gb *Machine) stepPixel() {
 		// Entering VBlank period.
 		if ppu.lcdDisplayEnable {
 			gb.Interrupt(intVBlank)
+			if ppu.vblankInterrupt {
+				gb.Interrupt(intLCDStat)
+			}
 		}
+
 	case ppu.clock < 70223:
 		switch {
 		case hclock == 455:

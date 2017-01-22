@@ -213,13 +213,15 @@ func (gb *Machine) cpuPop() uint16 {
 
 // Interrupt sets an interrupt request.
 func (gb *Machine) Interrupt(i uint8) {
+	if gb.cpu.ie&i != 0 {
+		gb.cpu.halt = false
+	}
 	gb.cpu.irq |= i
 }
 
 // cpuInterrupt runs an interupt vector.
 func (gb *Machine) cpuInterrupt(vector uint16) {
-	// Set flags to stop interrupts and unhalt CPU.
-	gb.cpu.halt = false
+	// Set flags to stop interrupts.
 	gb.cpu.ime = false
 
 	// Push the program counter onto the stack.
@@ -263,7 +265,7 @@ func (gb *Machine) checkTimers() {
 		gb.cpu.tima++
 		if gb.cpu.tima == 0 {
 			gb.cpu.tima = gb.cpu.tma
-			gb.cpu.irq |= intTimer
+			gb.Interrupt(intTimer)
 		}
 	}
 }
@@ -325,22 +327,18 @@ func (gb *Machine) trace() {
 }
 
 func (gb *Machine) stepInstruction() {
+	if gb.cpu.halt {
+		// Halted still
+		gb.stepCycle()
+		return
+	}
+
 	// Check interrupts
 	gb.checkInterrupts()
 
 	// Trace mode
 	if gb.cpu.trace {
 		gb.trace()
-	}
-
-	if gb.cpu.halt {
-		if gb.cpu.ie&gb.cpu.irq != 0 {
-			gb.cpu.halt = false
-		} else {
-			// Halted still
-			gb.stepCycle()
-			return
-		}
 	}
 
 	// Fetch next instruction.
