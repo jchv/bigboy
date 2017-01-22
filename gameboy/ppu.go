@@ -276,7 +276,6 @@ func (ppu *PPU) initScanline() {
 			s.data = ((s.data >> 1) & 0x5555) | ((s.data & 0x5555) << 1)
 			s.data = ((s.data >> 2) & 0x3333) | ((s.data & 0x3333) << 2)
 			s.data = ((s.data >> 4) & 0x0F0F) | ((s.data & 0x0F0F) << 4)
-			s.data = ((s.data >> 8) & 0x00FF) | ((s.data & 0x00FF) << 8)
 		}
 
 		ppu.numObjects++
