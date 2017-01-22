@@ -321,7 +321,7 @@ func (gb *Machine) trace() {
 		asmstr += " "
 	}
 
-	fmt.Printf("%s %s | b=%02x c=%02x d=%02x e=%02x h=%02x l=%02x a=%02x f=%04b sp=%04x pc=%04x\n", insstr, asmstr, gb.cpu.b, gb.cpu.c, gb.cpu.d, gb.cpu.e, gb.cpu.h, gb.cpu.l, gb.cpu.a, gb.cpu.f>>4, gb.cpu.sp, gb.cpu.pc)
+	fmt.Printf("%s %s | b=%02x c=%02x d=%02x e=%02x h=%02x l=%02x a=%02x f=%04b sp=%04x pc=%04x clk=%d\n", insstr, asmstr, gb.cpu.b, gb.cpu.c, gb.cpu.d, gb.cpu.e, gb.cpu.h, gb.cpu.l, gb.cpu.a, gb.cpu.f>>4, gb.cpu.sp, gb.cpu.pc, gb.cpu.clock/4)
 }
 
 func (gb *Machine) stepInstruction() {
@@ -757,7 +757,7 @@ func (gb *Machine) cpuDispatch(op uint8) {
 	case 0xC4:
 		gb.cpuOpCallFlag(!cpu.zf(), gb.cpuFetch16())
 	case 0xC5:
-		gb.cpuPush(gb.cpu.bc())
+		gb.cpuOpPush(gb.cpu.bc())
 	case 0xC6:
 		gb.cpuOpAdd(&cpu.a, gb.cpuFetch(), false)
 	case 0xC7:
@@ -789,7 +789,7 @@ func (gb *Machine) cpuDispatch(op uint8) {
 	case 0xD4:
 		gb.cpuOpCallFlag(!cpu.cf(), gb.cpuFetch16())
 	case 0xD5:
-		gb.cpuPush(cpu.de())
+		gb.cpuOpPush(cpu.de())
 	case 0xD6:
 		gb.cpuOpSub(&cpu.a, gb.cpuFetch(), false)
 	case 0xD7:
@@ -821,13 +821,13 @@ func (gb *Machine) cpuDispatch(op uint8) {
 	case 0xE4:
 		gb.cpuOpUndefined()
 	case 0xE5:
-		gb.cpuPush(cpu.hl())
+		gb.cpuOpPush(cpu.hl())
 	case 0xE6:
 		gb.cpuOpAnd(&cpu.a, gb.cpuFetch())
 	case 0xE7:
 		gb.cpuOpRestart(0x20)
 	case 0xE8:
-		cpu.sp = uint16(int(cpu.sp) + int(gb.cpuFetch()))
+		gb.cpuOpAddSP(gb.cpuFetchSigned())
 	case 0xE9:
 		gb.cpuOpJump(cpu.hl())
 	case 0xEA:
@@ -853,15 +853,15 @@ func (gb *Machine) cpuDispatch(op uint8) {
 	case 0xF4:
 		gb.cpuOpUndefined()
 	case 0xF5:
-		gb.cpuPush(cpu.af())
+		gb.cpuOpPush(cpu.af())
 	case 0xF6:
 		gb.cpuOpOr(&cpu.a, gb.cpuFetch())
 	case 0xF7:
 		gb.cpuOpRestart(0x30)
 	case 0xF8:
-		gb.cpu.setHL(cpu.sp + uint16(gb.cpuFetchSigned()))
+		gb.cpu.setHL(uint16(int(cpu.sp) + int(gb.cpuFetchSigned())))
 	case 0xF9:
-		gb.cpu.setHL(cpu.sp)
+		gb.cpu.sp = cpu.hl()
 	case 0xFA:
 		gb.cpuOpLoad(&cpu.a, gb.fetchAt(gb.cpuFetch16()))
 	case 0xFB:

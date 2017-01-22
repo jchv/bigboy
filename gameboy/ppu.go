@@ -266,7 +266,11 @@ func (ppu *PPU) initScanline() {
 		s.data |= uint(ppu.vram[tileDataAddr+1]) << 8
 
 		if s.attr&0x20 != 0 {
-			// TODO(john): horizontal flip
+			// Bit twiddling hack.
+			s.data = ((s.data >> 1) & 0x5555) | ((s.data & 0x5555) << 1)
+			s.data = ((s.data >> 2) & 0x3333) | ((s.data & 0x3333) << 2)
+			s.data = ((s.data >> 4) & 0x0F0F) | ((s.data & 0x0F0F) << 4)
+			s.data = ((s.data >> 8) & 0x00FF) | ((s.data & 0x00FF) << 8)
 		}
 
 		ppu.numObjects++
@@ -324,7 +328,7 @@ func (ppu *PPU) pixel() {
 
 	if ppu.bgDisplay {
 		scrolly := uint(ppu.ly+ppu.scrollY) & 0xFF
-		scrollx := uint(ppu.scrollX) + ppu.lx
+		scrollx := uint(uint(ppu.scrollX)+ppu.lx) & 0xFF
 		scrollBit := scrollx & 0x7
 
 		if scrollBit == 0 || ppu.lx == 0 {
@@ -438,7 +442,7 @@ func (gb *Machine) stepPixel() {
 
 			ppu.lx++
 
-		case hclock == 80+159:
+		case hclock == 80+160:
 			ppu.modeHi, ppu.modeLo = false, false
 			// TODO(john): DMA should be handled here
 

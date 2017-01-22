@@ -104,6 +104,11 @@ func (gb *Machine) cpuOpLoad16(reg *uint16, value uint16) {
 	*reg = value
 }
 
+func (gb *Machine) cpuOpPush(dword uint16) {
+	gb.stepCycle()
+	gb.cpuPush(dword)
+}
+
 // ============================================================================
 // CPU alu ops
 func (gb *Machine) cpuOpIncrement(reg *uint8) {
@@ -286,6 +291,17 @@ func (gb *Machine) cpuOpAdd(reg *uint8, value uint8, carry bool) {
 	gb.cpu.setZeroFlag(*reg)
 	gb.cpu.setHalfCarryFlag(rh > 0x0f)
 	gb.cpu.setCarryFlag(rn > 0xff)
+}
+
+func (gb *Machine) cpuOpAddSP(value int8) {
+	sp := int(gb.cpu.sp)
+	rn := sp + int(value)
+	rh := sp&0xfff + int(value)
+	gb.cpu.sp = uint16(rn)
+
+	gb.cpu.clearFlags(allFlags)
+	gb.cpu.setHalfCarryFlag(rh > 0x0fff)
+	gb.cpu.setCarryFlag(rn > 0xffff)
 }
 
 func (gb *Machine) cpuOpSub(reg *uint8, value uint8, carry bool) {
